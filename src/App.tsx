@@ -11,7 +11,7 @@ import {
   Timer,
 } from "@phosphor-icons/react";
 import { geoNaturalEarth1, geoPath } from "d3-geo";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { feature } from "topojson-client";
 import worldAtlas from "world-atlas/countries-110m.json";
 import { agents, dropItems, type DropCategory, type DropItem } from "./data";
@@ -270,17 +270,11 @@ export default function App() {
   const [selectedZone, setSelectedZone] = useState("Europe/Kyiv");
   const [detectedZone, setDetectedZone] = useState("");
   const [detectionState, setDetectionState] = useState<DetectionState>("loading");
-  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     const onHashChange = () => setPage(getPageFromHash());
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
-
-  useEffect(() => {
-    const tick = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(tick);
   }, []);
 
   useEffect(() => {
@@ -313,11 +307,9 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <div className="noise-layer" />
       <SiteNav page={page} onNavigate={setHash} />
       {page === "timer" ? (
         <TimerPage
-          now={now}
           selectedZone={selectedZone}
           detectedZone={detectedZone}
           detectionState={detectionState}
@@ -352,39 +344,22 @@ function SiteNav({ page, onNavigate }: { page: Page; onNavigate: (page: Page) =>
 }
 
 function TimerPage({
-  now,
   selectedZone,
   detectedZone,
   detectionState,
   onSelectZone,
 }: {
-  now: Date;
   selectedZone: string;
   detectedZone: string;
   detectionState: DetectionState;
   onSelectZone: (zone: string) => void;
 }) {
-  const nextReset = useMemo(() => getNextReset(now), [now]);
-  const countdown = formatCountdown(nextReset.getTime() - now.getTime());
   const activeBand = zoneBands.find((zone) => zone.timeZone === selectedZone);
-  const resetLocal = formatInZone(nextReset, selectedZone);
-  const resetPacific = formatInZone(nextReset, "America/Los_Angeles");
-  const clock = formatClock(now, selectedZone);
 
   return (
     <main className="timer-page">
       <section className="hero-grid">
-        <div className="agent-atmosphere" aria-hidden="true">
-          {agents.map((agent, index) => (
-            <img
-              className={`ambient-agent ambient-${agent.side.toLowerCase()} ambient-${index}`}
-              src={agent.image}
-              alt=""
-              style={{ "--agent-accent": agent.accent } as React.CSSProperties}
-              key={agent.name}
-            />
-          ))}
-        </div>
+        <AgentAtmosphere />
         <div className="hero-copy">
           <div className="eyebrow">
             <span className="live-dot" />
@@ -404,29 +379,90 @@ function TimerPage({
               {detectionState === "loading" ? "Detecting IP timezone" : `Detected: ${detectedZone || selectedZone}`}
             </div>
           </div>
-          <div className="countdown-panel map-countdown" aria-label="Time remaining">
-            <CountdownCell singular="Day" value={countdown.days} />
-            <CountdownCell singular="Hour" value={countdown.hours} />
-            <CountdownCell singular="Minute" value={countdown.minutes} />
-            <CountdownCell singular="Second" value={countdown.seconds} pulse />
-          </div>
+          <CountdownPanel />
           <TimezoneMap selectedZone={selectedZone} activeBand={activeBand} onSelectZone={onSelectZone} />
-          <div className="map-panel-footer">
-            <span>Selected zone</span>
-            <strong>{activeBand?.label || selectedZone}</strong>
-            <em>{resetLocal}</em>
-          </div>
+          <MapPanelFooter selectedZone={selectedZone} activeBand={activeBand} />
         </div>
 
         <div className="timer-stack">
-          <div className="reset-strip">
-            <TimeBadge icon={<Clock size={17} weight="duotone" />} label="Your time" value={clock} />
-            <TimeBadge icon={<MapPin size={17} weight="duotone" />} label="Next reset" value={resetLocal} />
-            <TimeBadge icon={<GlobeHemisphereWest size={17} weight="duotone" />} label="Valve reference" value={resetPacific} />
-          </div>
+          <ResetStrip selectedZone={selectedZone} />
         </div>
       </section>
     </main>
+  );
+}
+
+const AgentAtmosphere = memo(function AgentAtmosphere() {
+  return (
+    <div className="agent-atmosphere" aria-hidden="true">
+      {agents.map((agent, index) => (
+        <img
+          className={`ambient-agent ambient-${agent.side.toLowerCase()} ambient-${index}`}
+          src={agent.image}
+          alt=""
+          style={{ "--agent-accent": agent.accent } as React.CSSProperties}
+          key={agent.name}
+          loading="lazy"
+          decoding="async"
+        />
+      ))}
+    </div>
+  );
+});
+
+function useSecondClock() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const tick = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(tick);
+  }, []);
+
+  return now;
+}
+
+function CountdownPanel() {
+  const now = useSecondClock();
+  const nextReset = useMemo(() => getNextReset(now), [now]);
+  const countdown = formatCountdown(nextReset.getTime() - now.getTime());
+
+  return (
+    <div className="countdown-panel map-countdown" aria-label="Time remaining">
+      <CountdownCell singular="Day" value={countdown.days} />
+      <CountdownCell singular="Hour" value={countdown.hours} />
+      <CountdownCell singular="Minute" value={countdown.minutes} />
+      <CountdownCell singular="Second" value={countdown.seconds} pulse />
+    </div>
+  );
+}
+
+function ResetStrip({ selectedZone }: { selectedZone: string }) {
+  const now = useSecondClock();
+  const nextReset = useMemo(() => getNextReset(now), [now]);
+  const resetLocal = formatInZone(nextReset, selectedZone);
+  const resetPacific = formatInZone(nextReset, "America/Los_Angeles");
+  const clock = formatClock(now, selectedZone);
+
+  return (
+    <div className="reset-strip">
+      <TimeBadge icon={<Clock size={17} weight="duotone" />} label="Your time" value={clock} />
+      <TimeBadge icon={<MapPin size={17} weight="duotone" />} label="Next reset" value={resetLocal} />
+      <TimeBadge icon={<GlobeHemisphereWest size={17} weight="duotone" />} label="Valve reference" value={resetPacific} />
+    </div>
+  );
+}
+
+function MapPanelFooter({ selectedZone, activeBand }: { selectedZone: string; activeBand?: ZoneBand }) {
+  const now = useSecondClock();
+  const nextReset = useMemo(() => getNextReset(now), [now]);
+  const resetLocal = formatInZone(nextReset, selectedZone);
+
+  return (
+    <div className="map-panel-footer">
+      <span>Selected zone</span>
+      <strong>{activeBand?.label || selectedZone}</strong>
+      <em>{resetLocal}</em>
+    </div>
   );
 }
 
@@ -453,7 +489,7 @@ function TimeBadge({ icon, label, value }: { icon: React.ReactNode; label: strin
   );
 }
 
-function TimezoneMap({
+const TimezoneMap = memo(function TimezoneMap({
   selectedZone,
   activeBand,
   onSelectZone,
@@ -473,15 +509,6 @@ function TimezoneMap({
         <em>{display.short} / UTC {display.offset}</em>
       </div>
       <svg viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} role="img" aria-label="Interactive timezone map">
-        <defs>
-          <filter id="country-line-soften" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="0.45" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
         <rect width={MAP_WIDTH} height={MAP_HEIGHT} rx="28" className="map-ocean" />
         <g className="longitude-grid">
           {Array.from({ length: 25 }).map((_, index) => (
@@ -493,7 +520,7 @@ function TimezoneMap({
             <line key={index} x1="0" x2={MAP_WIDTH} y1={70 + index * 64} y2={70 + index * 64} />
           ))}
         </g>
-        <g className="country-lines" filter="url(#country-line-soften)">
+        <g className="country-lines">
           {countryPaths.map((country) => (
             <path key={country.id} className={`country-path ${country.side}-line`} d={country.d} />
           ))}
@@ -528,7 +555,7 @@ function TimezoneMap({
       </svg>
     </div>
   );
-}
+});
 
 function DropsPage() {
   const [query, setQuery] = useState("");

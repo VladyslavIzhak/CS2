@@ -12,6 +12,8 @@ type ZonedParts = {
 };
 
 const partFormatterCache = new Map<string, Intl.DateTimeFormat>();
+const displayFormatterCache = new Map<string, Intl.DateTimeFormat>();
+const clockFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
 function getPartsFormatter(timeZone: string) {
   const cached = partFormatterCache.get(timeZone);
@@ -120,7 +122,23 @@ export function getNextReset(now = new Date()) {
 }
 
 export function formatInZone(date: Date, timeZone: string, options?: Intl.DateTimeFormatOptions) {
-  return new Intl.DateTimeFormat("en-US", {
+  if (options) {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+      ...options,
+    }).format(date);
+  }
+
+  const cached = displayFormatterCache.get(timeZone);
+  if (cached) return cached.format(date);
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone,
     weekday: "short",
     month: "short",
@@ -128,18 +146,26 @@ export function formatInZone(date: Date, timeZone: string, options?: Intl.DateTi
     hour: "2-digit",
     minute: "2-digit",
     timeZoneName: "short",
-    ...options,
-  }).format(date);
+  });
+
+  displayFormatterCache.set(timeZone, formatter);
+  return formatter.format(date);
 }
 
 export function formatClock(date: Date, timeZone: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  const cached = clockFormatterCache.get(timeZone);
+  if (cached) return cached.format(date);
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone,
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
     hourCycle: "h23",
-  }).format(date);
+  });
+
+  clockFormatterCache.set(timeZone, formatter);
+  return formatter.format(date);
 }
 
 export function formatCountdown(ms: number) {

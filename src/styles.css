@@ -72,16 +72,6 @@ a {
   mask-image: linear-gradient(to bottom, black, transparent 82%);
 }
 
-.noise-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.09;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 240 240' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.72'/%3E%3C/svg%3E");
-}
-
 .site-nav {
   position: sticky;
   top: 0;
@@ -100,9 +90,8 @@ a {
   align-items: center;
   gap: 10px;
   border: 1px solid rgba(242, 238, 227, 0.13);
-  background: rgba(16, 18, 17, 0.66);
+  background: rgba(16, 18, 17, 0.92);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(18px);
 }
 
 .brand-mark {
@@ -220,15 +209,9 @@ a {
   max-height: 72%;
   object-fit: contain;
   opacity: 0.22;
-  filter:
-    saturate(0.82)
-    contrast(1.04)
-    drop-shadow(0 34px 28px rgba(0, 0, 0, 0.42))
-    drop-shadow(0 0 28px color-mix(in srgb, var(--agent-accent), transparent 74%));
-  mix-blend-mode: screen;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 16%, black 72%, transparent 100%);
+  filter: saturate(0.78) contrast(0.96);
   transform: translate3d(0, 0, 0);
-  animation: ambientDrift 7s ease-in-out infinite;
+  contain: layout paint;
 }
 
 .ambient-0 {
@@ -243,7 +226,7 @@ a {
   bottom: 37%;
   z-index: 1;
   width: clamp(230px, 18vw, 360px);
-  opacity: 0.13;
+  opacity: 0.1;
   transform: scaleX(-1);
 }
 
@@ -260,7 +243,7 @@ a {
   bottom: 58%;
   z-index: 0;
   width: clamp(180px, 14vw, 270px);
-  opacity: 0.09;
+  opacity: 0.07;
 }
 
 .ambient-4 {
@@ -276,7 +259,7 @@ a {
   bottom: 38%;
   z-index: 1;
   width: clamp(230px, 18vw, 360px);
-  opacity: 0.12;
+  opacity: 0.1;
   transform: scaleX(-1);
   animation-delay: -3.8s;
 }
@@ -295,7 +278,7 @@ a {
   bottom: 58%;
   z-index: 0;
   width: clamp(180px, 14vw, 270px);
-  opacity: 0.08;
+  opacity: 0.07;
   transform: scaleX(-1);
   animation-delay: -5.8s;
 }
@@ -347,8 +330,7 @@ a {
   height: 8px;
   border-radius: 999px;
   background: #caa45f;
-  box-shadow: 0 0 0 0 rgba(202, 164, 95, 0.45);
-  animation: breathe 2.2s ease-in-out infinite;
+  box-shadow: 0 0 0 4px rgba(202, 164, 95, 0.12);
 }
 
 .hero-copy h1,
@@ -449,11 +431,10 @@ a {
   max-width: none;
   margin: 18px 22px 0;
   border-color: rgba(255, 255, 255, 0.24);
-  background: rgba(8, 10, 10, 0.72);
+  background: rgba(8, 10, 10, 0.9);
   box-shadow:
     0 18px 60px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(16px);
 }
 
 .map-countdown .countdown-cell {
@@ -494,8 +475,7 @@ a {
   padding: 13px 14px;
   border: 1px solid rgba(242, 238, 227, 0.1);
   border-radius: 8px;
-  background: rgba(12, 14, 14, 0.78);
-  backdrop-filter: blur(10px);
+  background: rgba(12, 14, 14, 0.92);
 }
 
 .badge-icon {
@@ -548,12 +528,10 @@ a {
 
 .cinematic-map-panel::before {
   position: absolute;
-  inset: -40% -20%;
+  inset: 0;
   content: "";
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 20%, rgba(239, 214, 166, 0.09) 46%, transparent 62%);
-  transform: translate3d(-36%, 0, 0) skewX(-18deg);
-  animation: projectorSweep 7.5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  background: linear-gradient(105deg, transparent 26%, rgba(239, 214, 166, 0.045) 48%, transparent 68%);
 }
 
 .cinematic-map-panel::after {
@@ -599,9 +577,8 @@ a {
   padding: 13px 15px;
   border: 1px solid rgba(242, 238, 227, 0.13);
   border-radius: 7px;
-  background: rgba(8, 10, 10, 0.72);
+  background: rgba(8, 10, 10, 0.92);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px);
 }
 
 .map-panel-footer span {
@@ -687,7 +664,6 @@ a {
     linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: 100% 14px, 14px 100%;
-  mix-blend-mode: overlay;
 }
 
 .map-status {
@@ -700,8 +676,7 @@ a {
   padding: 12px 14px;
   border: 1px solid rgba(242, 238, 227, 0.11);
   border-radius: 7px;
-  background: rgba(11, 13, 13, 0.68);
-  backdrop-filter: blur(12px);
+  background: rgba(11, 13, 13, 0.92);
 }
 
 .map-status span,
@@ -751,10 +726,6 @@ a {
   stroke-linecap: round;
   stroke-width: 0.9;
   vector-effect: non-scaling-stroke;
-  transition:
-    fill 0.24s ease,
-    stroke 0.24s ease,
-    opacity 0.24s ease;
 }
 
 .country-path.ct-line {
@@ -763,11 +734,6 @@ a {
 
 .country-path.t-line {
   stroke: rgba(207, 162, 83, 0.72);
-}
-
-.map-shell:hover .country-path {
-  opacity: 0.9;
-  fill: #070909;
 }
 
 .timezone-edge {
@@ -795,9 +761,8 @@ a {
   stroke-width: 0.7;
   outline: none;
   transition:
-    fill 0.22s ease,
-    stroke 0.22s ease,
-    opacity 0.22s ease;
+    fill 0.16s ease,
+    stroke 0.16s ease;
   vector-effect: non-scaling-stroke;
 }
 
@@ -841,9 +806,8 @@ a {
   padding: 10px;
   border: 1px solid rgba(242, 238, 227, 0.12);
   border-radius: 8px;
-  background: rgba(16, 18, 17, 0.77);
+  background: rgba(16, 18, 17, 0.94);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(18px);
 }
 
 .catalog-toolbar,
@@ -1064,65 +1028,6 @@ a {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-@keyframes breathe {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(202, 164, 95, 0.36);
-    transform: scale(0.92);
-  }
-
-  50% {
-    box-shadow: 0 0 0 8px rgba(202, 164, 95, 0);
-    transform: scale(1.05);
-  }
-}
-
-@keyframes radarSweep {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes projectorSweep {
-  0%,
-  18% {
-    transform: translate3d(-42%, 0, 0) skewX(-18deg);
-    opacity: 0;
-  }
-
-  42% {
-    opacity: 1;
-  }
-
-  72%,
-  100% {
-    transform: translate3d(42%, 0, 0) skewX(-18deg);
-    opacity: 0;
-  }
-}
-
-@keyframes ambientDrift {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-
-  50% {
-    transform: translate3d(0, -8px, 0) scale(1.015);
-  }
-}
-
-@keyframes operatorFloat {
-  0%,
-  100% {
-    translate: 0 0;
-  }
-
-  50% {
-    translate: 0 -9px;
-  }
 }
 
 @keyframes rowIn {
