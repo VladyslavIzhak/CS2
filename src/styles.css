@@ -721,11 +721,17 @@ a {
 }
 
 .country-path {
-  fill: #050706;
+  cursor: pointer;
+  fill: color-mix(in srgb, var(--zone-accent, #8bb5c4), transparent 91%);
   stroke-linejoin: round;
   stroke-linecap: round;
   stroke-width: 0.9;
+  outline: none;
   vector-effect: non-scaling-stroke;
+  transition:
+    fill 0.16s ease,
+    stroke 0.16s ease,
+    opacity 0.16s ease;
 }
 
 .country-path.ct-line {
@@ -736,46 +742,16 @@ a {
   stroke: rgba(207, 162, 83, 0.72);
 }
 
-.timezone-edge {
-  fill: none;
-  stroke-width: 1.1;
-  stroke-dasharray: 5 7;
-  stroke-linecap: round;
-  opacity: 0.58;
-  vector-effect: non-scaling-stroke;
-  pointer-events: none;
-}
-
-.timezone-edge.ct-edge {
-  stroke: rgba(136, 174, 189, 0.42);
-}
-
-.timezone-edge.t-edge {
-  stroke: rgba(199, 155, 82, 0.38);
-}
-
-.zone-band {
-  cursor: pointer;
-  fill: rgba(199, 155, 82, 0.018);
-  stroke: rgba(242, 238, 227, 0.04);
-  stroke-width: 0.7;
-  outline: none;
-  transition:
-    fill 0.16s ease,
-    stroke 0.16s ease;
-  vector-effect: non-scaling-stroke;
-}
-
-.zone-band:hover,
-.zone-band.hot {
-  fill: rgba(199, 155, 82, 0.17);
-  stroke: rgba(239, 209, 151, 0.72);
+.country-path:hover,
+.country-path.hot {
+  fill: color-mix(in srgb, var(--zone-accent, #caa45f), transparent 76%);
+  stroke: color-mix(in srgb, var(--zone-accent, #caa45f), #f2eee3 32%);
   stroke-width: 2.2;
 }
 
-.zone-band.selected {
-  fill: rgba(136, 174, 189, 0.24);
-  stroke: rgba(191, 223, 233, 0.78);
+.country-path.selected {
+  fill: color-mix(in srgb, var(--zone-accent, #8bb5c4), transparent 78%);
+  stroke: rgba(191, 223, 233, 0.8);
   stroke-width: 2.4;
 }
 

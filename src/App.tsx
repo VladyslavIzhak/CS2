@@ -10,6 +10,8 @@ import {
   SortAscending,
   Timer,
 } from "@phosphor-icons/react";
+import { getCountry, getTimezone } from "countries-and-timezones";
+import { countryToAlpha2 } from "country-to-iso";
 import { geoNaturalEarth1, geoPath } from "d3-geo";
 import { memo, useEffect, useMemo, useState } from "react";
 import { feature } from "topojson-client";
@@ -31,8 +33,10 @@ type ZoneBand = {
 
 type CountryPath = {
   id: string;
+  name: string;
   d: string;
   side: "ct" | "t";
+  zone: ZoneBand;
 };
 
 const MAP_WIDTH = 1000;
@@ -43,6 +47,61 @@ const MAP_FIT_EXTENT: [[number, number], [number, number]] = [
 ];
 const mapProjection = geoNaturalEarth1().fitExtent(MAP_FIT_EXTENT, { type: "Sphere" });
 const mapPath = geoPath(mapProjection);
+
+const countryNameAliases: Record<string, string> = {
+  "Bosnia and Herz.": "BA",
+  "Central African Rep.": "CF",
+  "Dem. Rep. Congo": "CD",
+  "Dominican Rep.": "DO",
+  "Eq. Guinea": "GQ",
+  "Falkland Is.": "FK",
+  "Fr. S. Antarctic Lands": "TF",
+  Kosovo: "RS",
+  "N. Cyprus": "CY",
+  "S. Sudan": "SS",
+  Somaliland: "SO",
+  "Solomon Is.": "SB",
+  "W. Sahara": "EH",
+};
+
+function timezoneDistance(timeZone: string, band: ZoneBand) {
+  const source = getTimezone(timeZone);
+  const target = getTimezone(band.timeZone);
+  if (!source || !target) return Number.POSITIVE_INFINITY;
+
+  const standardDistance = Math.abs(source.utcOffset - target.utcOffset);
+  const daylightDistance = Math.abs(source.dstOffset - target.dstOffset);
+  const regionBonus = timeZone.split("/")[0] === band.timeZone.split("/")[0] ? -20 : 0;
+  return standardDistance + daylightDistance + regionBonus;
+}
+
+function resolveZoneBand(timeZone: string) {
+  const exact = zoneBands.find((zone) => zone.timeZone === timeZone);
+  if (exact) return exact;
+
+  return [...zoneBands].sort((a, b) => timezoneDistance(timeZone, a) - timezoneDistance(timeZone, b))[0] || zoneBands[0];
+}
+
+function getCountryCode(name: string) {
+  return countryNameAliases[name] || countryToAlpha2(name);
+}
+
+function getCountryZone(name: string) {
+  const countryCode = getCountryCode(name);
+  const country = countryCode ? getCountry(countryCode) : null;
+  if (!country) return resolveZoneBand("Etc/UTC");
+
+  const exact = country.timezones.map((timeZone) => zoneBands.find((zone) => zone.timeZone === timeZone)).find(Boolean);
+  if (exact) return exact;
+
+  const closest = [...country.timezones].sort((a, b) => {
+    const zoneA = resolveZoneBand(a);
+    const zoneB = resolveZoneBand(b);
+    return timezoneDistance(a, zoneA) - timezoneDistance(b, zoneB);
+  })[0];
+
+  return closest ? resolveZoneBand(closest) : resolveZoneBand("Etc/UTC");
+}
 
 function buildCountryPaths(): CountryPath[] {
   const topology = worldAtlas as unknown as {
@@ -57,17 +116,18 @@ function buildCountryPaths(): CountryPath[] {
       const d = mapPath(country as never);
       if (!d) return null;
       const [x, y] = mapPath.centroid(country as never);
+      const name = String(country.properties?.name || country.id || index);
       const side = (x < MAP_WIDTH / 2 && y < MAP_HEIGHT * 0.76) || index % 7 === 0 ? "ct" : "t";
       return {
         id: String(country.id ?? index),
+        name,
         d,
         side,
+        zone: getCountryZone(name),
       };
     })
     .filter((country): country is CountryPath => Boolean(country));
 }
-
-const countryPaths = buildCountryPaths();
 
 const zoneBands: ZoneBand[] = [
   { id: "midway", label: "Midway", short: "UTC-11", timeZone: "Pacific/Midway", offset: "-11" },
@@ -93,150 +153,7 @@ const zoneBands: ZoneBand[] = [
   { id: "auckland", label: "Auckland", short: "NZT", timeZone: "Pacific/Auckland", offset: "+12/+13" },
 ];
 
-const ZONE_EDGE_LONGITUDES = [
-  -180, -165, -150, -135, -120, -105, -90, -75, -60, -45, -15, 7.5, 22.5, 37.5, 52.5, 67.5, 82.5, 97.5, 112.5,
-  127.5, 150, 180,
-];
-const ZONE_LATITUDES = [-82, -72, -62, -52, -42, -32, -22, -12, -2, 8, 18, 28, 38, 48, 58, 68, 78, 84];
-const EDGE_OFFSETS: Record<number, Array<[number, number, number]>> = {
-  2: [
-    [48, 72, -7],
-    [52, 62, 9],
-  ],
-  3: [
-    [45, 66, 8],
-    [22, 34, -4],
-  ],
-  4: [
-    [30, 49, 5],
-    [49, 62, -8],
-  ],
-  5: [
-    [26, 49, 4],
-    [49, 61, -3],
-  ],
-  6: [
-    [25, 48, 6],
-    [48, 61, 3],
-  ],
-  7: [
-    [38, 58, 8],
-    [-55, -10, 4],
-  ],
-  8: [
-    [-34, 8, 7],
-    [38, 56, -7],
-  ],
-  10: [
-    [35, 62, 9],
-    [-35, 15, -7],
-  ],
-  11: [
-    [36, 58, -8],
-    [-30, 5, 5],
-  ],
-  12: [
-    [42, 58, 8],
-    [18, 36, -4],
-  ],
-  13: [
-    [35, 58, -5],
-    [10, 28, 5],
-  ],
-  14: [
-    [24, 44, -6],
-    [-8, 16, 4],
-  ],
-  15: [
-    [8, 34, -4],
-    [-12, 10, 6],
-  ],
-  16: [
-    [6, 32, 6],
-    [-18, 5, -4],
-  ],
-  17: [
-    [20, 48, -6],
-    [-12, 18, 5],
-  ],
-  18: [
-    [22, 52, 5],
-    [-10, 12, -5],
-  ],
-  19: [
-    [30, 52, -6],
-    [-44, -12, 6],
-  ],
-  20: [
-    [-48, -10, -7],
-    [44, 64, 9],
-  ],
-};
-
-type TimezoneShape = ZoneBand & {
-  d: string;
-};
-
-type TimezoneEdgePath = {
-  id: string;
-  d: string;
-  side: "ct" | "t";
-};
-
-function edgeLongitude(edgeIndex: number, latitude: number) {
-  const base = ZONE_EDGE_LONGITUDES[edgeIndex];
-  if (edgeIndex === 0 || edgeIndex === ZONE_EDGE_LONGITUDES.length - 1) return base;
-
-  const offset = (EDGE_OFFSETS[edgeIndex] || []).reduce((total, [min, max, value]) => {
-    if (latitude < min || latitude > max) return total;
-    const center = (min + max) / 2;
-    const half = (max - min) / 2;
-    const weight = 1 - Math.min(1, Math.abs(latitude - center) / half);
-    return total + value * (0.35 + weight * 0.65);
-  }, 0);
-
-  return Math.max(-180, Math.min(180, base + offset));
-}
-
-function projectedPoint(edgeIndex: number, latitude: number) {
-  const point = mapProjection([edgeLongitude(edgeIndex, latitude), latitude]);
-  return point ? [Number(point[0].toFixed(2)), Number(point[1].toFixed(2))] : null;
-}
-
-function pointsToPath(points: Array<[number, number]>) {
-  const [first, ...rest] = points;
-  return `M ${first[0]} ${first[1]} ${rest.map(([x, y]) => `L ${x} ${y}`).join(" ")}`;
-}
-
-function buildTimezonePath(zoneIndex: number) {
-  const west = ZONE_LATITUDES.map((latitude) => projectedPoint(zoneIndex, latitude)).filter(
-    (point): point is [number, number] => Boolean(point),
-  );
-  const east = [...ZONE_LATITUDES]
-    .reverse()
-    .map((latitude) => projectedPoint(zoneIndex + 1, latitude))
-    .filter((point): point is [number, number] => Boolean(point));
-
-  return `${pointsToPath([...west, ...east])} Z`;
-}
-
-function buildTimezoneEdgePath(edgeIndex: number) {
-  const points = ZONE_LATITUDES.map((latitude) => projectedPoint(edgeIndex, latitude)).filter(
-    (point): point is [number, number] => Boolean(point),
-  );
-  return pointsToPath(points);
-}
-
-const timezoneShapes: TimezoneShape[] = zoneBands.map((zone, index) => ({
-  ...zone,
-  d: buildTimezonePath(index),
-}));
-
-const timezoneEdges: TimezoneEdgePath[] = ZONE_EDGE_LONGITUDES.slice(1, -1).map((_, index) => ({
-  id: `timezone-edge-${index + 1}`,
-  d: buildTimezoneEdgePath(index + 1),
-  side: index % 2 === 0 ? "ct" : "t",
-}));
+const countryPaths = buildCountryPaths();
 
 const sortLabels: Record<SortKey, string> = {
   chance: "Chance",
@@ -354,7 +271,7 @@ function TimerPage({
   detectionState: DetectionState;
   onSelectZone: (zone: string) => void;
 }) {
-  const activeBand = zoneBands.find((zone) => zone.timeZone === selectedZone);
+  const activeBand = resolveZoneBand(selectedZone);
 
   return (
     <main className="timer-page">
@@ -460,7 +377,7 @@ function MapPanelFooter({ selectedZone, activeBand }: { selectedZone: string; ac
   return (
     <div className="map-panel-footer">
       <span>Selected zone</span>
-      <strong>{activeBand?.label || selectedZone}</strong>
+      <strong>{activeBand?.timeZone === selectedZone ? activeBand.label : selectedZone}</strong>
       <em>{resetLocal}</em>
     </div>
   );
@@ -522,35 +439,28 @@ const TimezoneMap = memo(function TimezoneMap({
         </g>
         <g className="country-lines">
           {countryPaths.map((country) => (
-            <path key={country.id} className={`country-path ${country.side}-line`} d={country.d} />
-          ))}
-        </g>
-        <g className="timezone-border-lines" aria-hidden="true">
-          {timezoneEdges.map((edge) => (
-            <path key={edge.id} className={`timezone-edge ${edge.side}-edge`} d={edge.d} />
-          ))}
-        </g>
-        <g className="timezone-hit-areas">
-          {timezoneShapes.map((zone) => {
-            const selected = zone.timeZone === selectedZone;
-            const hot = hovered?.id === zone.id;
-            return (
               <path
-                key={zone.id}
-                className={`zone-band ${selected ? "selected" : ""} ${hot ? "hot" : ""}`}
-                d={zone.d}
-                onMouseEnter={() => setHovered(zone)}
+                key={country.id}
+                className={`country-path ${country.side}-line ${country.zone.id === activeBand?.id ? "selected" : ""} ${
+                  country.zone.id === hovered?.id ? "hot" : ""
+                }`}
+                d={country.d}
+                style={
+                  {
+                    "--zone-accent": zoneBands.indexOf(country.zone) % 2 === 0 ? "#8bb5c4" : "#caa45f",
+                  } as React.CSSProperties
+                }
+                onMouseEnter={() => setHovered(country.zone)}
                 onMouseLeave={() => setHovered(null)}
-                onClick={() => onSelectZone(zone.timeZone)}
+                onClick={() => onSelectZone(country.zone.timeZone)}
                 tabIndex={0}
                 role="button"
-                aria-label={`Select ${zone.label} timezone`}
+                aria-label={`Select ${country.name}, ${country.zone.label} timezone`}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") onSelectZone(zone.timeZone);
+                  if (event.key === "Enter" || event.key === " ") onSelectZone(country.zone.timeZone);
                 }}
               />
-            );
-          })}
+          ))}
         </g>
       </svg>
     </div>
