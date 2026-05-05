@@ -10,8 +10,7 @@ import {
   SortAscending,
   Timer,
 } from "@phosphor-icons/react";
-import { getCountry, getTimezone } from "countries-and-timezones";
-import { countryToAlpha2 } from "country-to-iso";
+import { getAllCountries, getCountry, getTimezone } from "countries-and-timezones";
 import { geoNaturalEarth1, geoPath } from "d3-geo";
 import { memo, useEffect, useMemo, useState } from "react";
 import { feature } from "topojson-client";
@@ -51,6 +50,8 @@ const mapPath = geoPath(mapProjection);
 const countryNameAliases: Record<string, string> = {
   "Bosnia and Herz.": "BA",
   "Central African Rep.": "CF",
+  Congo: "CG",
+  "Côte d'Ivoire": "CI",
   "Dem. Rep. Congo": "CD",
   "Dominican Rep.": "DO",
   "Eq. Guinea": "GQ",
@@ -61,8 +62,18 @@ const countryNameAliases: Record<string, string> = {
   "S. Sudan": "SS",
   Somaliland: "SO",
   "Solomon Is.": "SB",
+  "United States of America": "US",
   "W. Sahara": "EH",
 };
+
+function normalizeCountryName(name: string) {
+  return name.toLowerCase().replace(/[^a-z]/g, "");
+}
+
+const countryCodesByName = Object.values(getAllCountries()).reduce<Record<string, string>>((acc, country) => {
+  acc[normalizeCountryName(country.name)] = country.id;
+  return acc;
+}, {});
 
 function timezoneDistance(timeZone: string, band: ZoneBand) {
   const source = getTimezone(timeZone);
@@ -83,7 +94,7 @@ function resolveZoneBand(timeZone: string) {
 }
 
 function getCountryCode(name: string) {
-  return countryNameAliases[name] || countryToAlpha2(name);
+  return countryNameAliases[name] || countryCodesByName[normalizeCountryName(name)] || null;
 }
 
 function getCountryZone(name: string) {
